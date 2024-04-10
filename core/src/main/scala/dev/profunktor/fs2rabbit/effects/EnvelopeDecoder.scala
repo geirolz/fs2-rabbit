@@ -15,13 +15,13 @@
  */
 
 package dev.profunktor.fs2rabbit.effects
-import cats.{Applicative, ApplicativeThrow}
 import cats.data.Kleisli
-import dev.profunktor.fs2rabbit.model.{AmqpFieldValue, AmqpProperties, ExchangeName, RoutingKey}
-import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
 import cats.implicits._
+import cats.{Applicative, ApplicativeThrow}
+import dev.profunktor.fs2rabbit.model.AmqpFieldValue._
+import dev.profunktor.fs2rabbit.model._
 
-object EnvelopeDecoder {
+object EnvelopeDecoder extends EnvelopeDecoderInstances {
   def apply[F[_], A](implicit e: EnvelopeDecoder[F, A]): EnvelopeDecoder[F, A] = e
 
   def properties[F[_]: Applicative]: EnvelopeDecoder[F, AmqpProperties] =
@@ -80,4 +80,10 @@ object EnvelopeDecoder {
       F: ApplicativeThrow[F]
   ): EnvelopeDecoder[F, Option[A]] =
     Kleisli(_.properties.headers.get(name).traverse(h => F.catchNonFatal(pf(h))))
+}
+
+
+private sealed trait EnvelopeDecoderInstances {
+  implicit def id[F[_]: Applicative] : EnvelopeDecoder[F[_], AmqpEnvelope[Array[Byte]]] =
+    Kleisli(_.pure[F])
 }
